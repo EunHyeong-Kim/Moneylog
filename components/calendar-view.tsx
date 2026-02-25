@@ -6,6 +6,7 @@ import { useTransactions, useMonthlyStats } from '@/hooks/use-data'
 import { formatCurrency, getDaysInMonth, getFirstDayOfMonth, getWeekdayName, formatDate } from '@/lib/helpers'
 import type { Transaction } from '@/lib/types'
 import { DayDetail } from './day-detail'
+import { getKoreanHolidays } from '@/lib/korean-holidays'
 
 interface CalendarViewProps {
   year: number
@@ -21,6 +22,8 @@ export function CalendarView({ year, month, onMonthChange, onAddTransaction }: C
 
   const daysInMonth = getDaysInMonth(year, month)
   const firstDay = getFirstDayOfMonth(year, month)
+
+  const holidayMap = useMemo(() => getKoreanHolidays(year), [year])
 
   const dailyTotals = useMemo(() => {
     const map = new Map<string, { income: number; expense: number }>()
@@ -54,14 +57,14 @@ export function CalendarView({ year, month, onMonthChange, onAddTransaction }: C
     <div className="flex flex-col">
       {/* Monthly Summary */}
       <div className="bg-primary px-4 pb-5 pt-4">
-        <div className="flex items-center justify-between mb-4">
-          <button onClick={goToPrevMonth} className="p-1 text-primary-foreground/80" aria-label="이전 달">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <button onClick={goToPrevMonth} className="p-1 text-primary-foreground/80 -translate-y-0.5" aria-label="이전 달">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <h2 className="text-lg font-bold text-primary-foreground">
             {year}년 {month + 1}월
           </h2>
-          <button onClick={goToNextMonth} className="p-1 text-primary-foreground/80" aria-label="다음 달">
+          <button onClick={goToNextMonth} className="p-1 text-primary-foreground/80 -translate-y-0.5" aria-label="다음 달">
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
@@ -118,28 +121,36 @@ export function CalendarView({ year, month, onMonthChange, onAddTransaction }: C
             const isToday = dateStr === today
             const isSelected = dateStr === selectedDate
             const dayOfWeek = (firstDay + i) % 7
+            const holidayName = holidayMap.get(dateStr)
+            const isHoliday = !!holidayName
+            const isRed = dayOfWeek === 0 || isHoliday
 
             return (
               <button
                 key={day}
                 onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                className={`flex flex-col items-center min-h-[76px] p-1 rounded-lg transition-colors relative ${
-                  isSelected ? 'bg-primary/10' : ''
-                }`}
+                className="flex flex-col items-center min-h-[84px] p-1 rounded-lg transition-colors relative"
               >
                 <span className={`text-xs font-medium leading-5 ${
                   isToday
                     ? 'flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px]'
-                    : dayOfWeek === 0
-                      ? 'text-expense'
-                      : dayOfWeek === 6
-                        ? 'text-primary'
-                        : 'text-card-foreground'
+                    : isSelected
+                      ? `flex h-5 w-5 items-center justify-center rounded-full bg-primary/40 ${isRed ? 'text-expense' : dayOfWeek === 6 ? 'text-primary' : 'text-card-foreground'}`
+                      : isRed
+                        ? 'text-expense'
+                        : dayOfWeek === 6
+                          ? 'text-primary'
+                          : 'text-card-foreground'
                 }`}>
                   {day}
                 </span>
+                {holidayName && (
+                  <span className="block text-[7px] leading-[1.6] text-expense w-full text-center px-0.5 overflow-hidden whitespace-nowrap text-ellipsis opacity-80" style={{ marginTop: 1 }}>
+                    {holidayName}
+                  </span>
+                )}
                 {!isLoading && totals && (
-                  <div className="flex flex-col items-center gap-0.5 mt-1 w-full">
+                  <div className="flex flex-col items-center gap-0.5 mt-0.5 w-full">
                     {totals.income > 0 && (
                       <span className="text-[9px] leading-tight font-medium text-income w-full text-center px-0.5" style={{ wordBreak: 'break-all' }}>
                         +{totals.income >= 100000
