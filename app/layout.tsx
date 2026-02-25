@@ -3,7 +3,7 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '스마트 달력 가계부',
+  title: 'Moneylog',
   description: '직관적인 달력 뷰 기반 개인 재무 관리 앱',
   generator: 'v0.app',
   icons: {
