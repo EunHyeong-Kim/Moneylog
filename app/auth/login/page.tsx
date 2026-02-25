@@ -120,7 +120,7 @@ export default function LoginPage() {
       {/* Title */}
       <div className="relative mb-8 flex flex-col items-center gap-2">
         <h1 className="text-3xl font-bold" style={{ color: '#5B3A9E', letterSpacing: '-0.03em' }}>
-          Money-log
+          Moneylog
         </h1>
       </div>
 
