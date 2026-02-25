@@ -3,11 +3,17 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ── KotraGothic ──────────────────────────────────────── */
+/* ── ReperiBase (LeferiBaseType) ──────────────────────── */
 @font-face {
-  font-family: 'KotraGothic';
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@1.0/KOTRA_GOTHIC.woff') format('woff');
+  font-family: 'ReperiBase';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2201-2@1.0/LeferiBaseType-RegularA.woff') format('woff');
   font-weight: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'ReperiBase';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2201-2@1.0/LeferiBaseType-BoldA.woff') format('woff');
+  font-weight: 700;
   font-display: swap;
 }
 
@@ -74,7 +80,7 @@
 }
 
 @theme inline {
-  --font-sans: 'KotraGothic', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  --font-sans: 'ReperiBase', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
   --font-mono: 'Geist Mono', monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);

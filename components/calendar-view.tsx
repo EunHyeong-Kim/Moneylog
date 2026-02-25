@@ -65,25 +65,26 @@ export function CalendarView({ year, month, onMonthChange, onAddTransaction }: C
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
-        <div className="flex justify-between rounded-xl bg-primary-foreground/10 px-4 py-3">
+        <div className="grid grid-cols-3 rounded-xl bg-primary-foreground/10 px-4 py-3">
           <div className="flex flex-col items-center">
             <span className="text-[10px] text-primary-foreground/60">수입</span>
             <span className="text-sm font-bold text-primary-foreground">
               {formatCurrency(income)}
             </span>
           </div>
-          <div className="h-8 w-px bg-primary-foreground/20" />
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center border-x border-primary-foreground/20">
             <span className="text-[10px] text-primary-foreground/60">지출</span>
             <span className="text-sm font-bold text-primary-foreground">
               {formatCurrency(expense)}
             </span>
           </div>
-          <div className="h-8 w-px bg-primary-foreground/20" />
           <div className="flex flex-col items-center">
             <span className="text-[10px] text-primary-foreground/60">잔액</span>
-            <span className={`text-sm font-bold ${balance >= 0 ? 'text-primary-foreground' : 'text-red-300'}`}>
-              {balance >= 0 ? '+' : ''}{formatCurrency(balance)}
+            <span
+              className="text-sm font-bold"
+              style={{ color: balance >= 0 ? '#5D6DBE' : '#F08080' }}
+            >
+              {formatCurrency(Math.abs(balance))}
             </span>
           </div>
         </div>

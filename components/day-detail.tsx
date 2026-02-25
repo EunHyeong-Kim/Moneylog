@@ -1,9 +1,12 @@
 'use client'
 
-import { Plus } from 'lucide-react'
+import { useState } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CategoryIcon } from '@/components/category-icon'
 import { formatCurrency } from '@/lib/helpers'
+import { createClient } from '@/lib/supabase/client'
+import { mutate } from 'swr'
 import type { Transaction } from '@/lib/types'
 
 interface DayDetailProps {
@@ -14,13 +17,26 @@ interface DayDetailProps {
 }
 
 export function DayDetail({ date, transactions, onClose, onAddTransaction }: DayDetailProps) {
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
   const d = new Date(date + 'T00:00:00')
   const dayLabel = `${d.getMonth() + 1}월 ${d.getDate()}일`
   const weekdays = ['일', '월', '화', '수', '목', '금', '토']
   const weekday = weekdays[d.getDay()]
+  const year = d.getFullYear()
+  const month = d.getMonth()
 
   const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+
+  const handleDelete = async (t: Transaction) => {
+    if (!confirm(`'${t.description || t.categories?.name || '이 내역'}'을 삭제하시겠습니까?`)) return
+    setDeletingId(t.id)
+    const supabase = createClient()
+    await supabase.from('transactions').delete().eq('id', t.id)
+    await mutate(`transactions-${year}-${month}`)
+    setDeletingId(null)
+  }
 
   return (
     <div className="border-t border-border bg-card">
@@ -68,17 +84,25 @@ export function DayDetail({ date, transactions, onClose, onAddTransaction }: Day
                       style={{ color: t.categories?.color || '#6B7280' }}
                     />
                   </div>
-                  <div className="flex flex-1 flex-col">
-                    <span className="text-sm font-medium text-card-foreground">
+                  <div className="flex flex-1 flex-col min-w-0">
+                    <span className="text-sm font-medium text-card-foreground truncate">
                       {t.description || t.categories?.name || '미분류'}
                     </span>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-[11px] text-muted-foreground truncate">
                       {t.payment_methods?.name || ''}{t.memo ? ` · ${t.memo}` : ''}
                     </span>
                   </div>
-                  <span className={`text-sm font-bold ${t.type === 'income' ? 'text-income' : 'text-expense'}`}>
+                  <span className={`text-sm font-bold shrink-0 ${t.type === 'income' ? 'text-income' : 'text-expense'}`}>
                     {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                   </span>
+                  <button
+                    onClick={() => handleDelete(t)}
+                    disabled={deletingId === t.id}
+                    className="shrink-0 p-1.5 rounded-lg hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                    aria-label="삭제"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
                 </div>
               ))}
             </div>
