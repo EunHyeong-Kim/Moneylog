@@ -32,6 +32,13 @@ export function TransactionForm({ initialDate, onClose, year, month }: Transacti
   const { data: paymentMethods } = usePaymentMethods()
   const [type, setType] = useState<'expense' | 'income'>('expense')
   const [amount, setAmount] = useState('')
+
+  const amountNumber = Number(amount.replace(/,/g, ''))
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/[^0-9]/g, '')
+    setAmount(digits ? Number(digits).toLocaleString() : '')
+  }
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null)
   const [installmentMonths, setInstallmentMonths] = useState(1)
@@ -77,7 +84,7 @@ export function TransactionForm({ initialDate, onClose, year, month }: Transacti
   }
 
   const handleSubmit = async () => {
-    if (!amount || Number(amount) <= 0) return
+    if (!amount || amountNumber <= 0) return
     setIsSubmitting(true)
 
     const supabase = createClient()
@@ -87,7 +94,7 @@ export function TransactionForm({ initialDate, onClose, year, month }: Transacti
     const payload: Record<string, unknown> = {
       user_id: user.id,
       type,
-      amount: Number(amount),
+      amount: amountNumber,
       category_id: categoryId,
       payment_method_id: paymentMethodId,
       description: description || null,
@@ -110,7 +117,7 @@ export function TransactionForm({ initialDate, onClose, year, month }: Transacti
           category_id: categoryId,
           payment_method_id: paymentMethodId,
           description: description.trim() || '반복 지출',
-          amount: Number(amount),
+          amount: amountNumber,
           due_day: dueDay,
           is_active: true,
         })
@@ -167,11 +174,11 @@ export function TransactionForm({ initialDate, onClose, year, month }: Transacti
               <Label className="text-xs font-medium text-muted-foreground">금액</Label>
               <div className="relative">
                 <Input
-                  type="number"
+                  type="text"
                   inputMode="numeric"
                   placeholder="0"
                   value={amount}
-                  onChange={e => setAmount(e.target.value)}
+                  onChange={handleAmountChange}
                   className="h-14 rounded-xl pr-10 text-right text-2xl font-bold text-card-foreground"
                   autoFocus
                 />
@@ -253,9 +260,9 @@ export function TransactionForm({ initialDate, onClose, year, month }: Transacti
                     </button>
                   ))}
                 </div>
-                {installmentMonths > 1 && amount && Number(amount) > 0 && (
+                {installmentMonths > 1 && amountNumber > 0 && (
                   <p className="text-[11px] text-primary">
-                    월 {Math.ceil(Number(amount) / installmentMonths).toLocaleString()}원 × {installmentMonths}개월
+                    월 {Math.ceil(amountNumber / installmentMonths).toLocaleString()}원 × {installmentMonths}개월
                   </p>
                 )}
               </div>
@@ -338,7 +345,7 @@ export function TransactionForm({ initialDate, onClose, year, month }: Transacti
         <div className="border-t border-border p-4 safe-bottom">
           <Button
             onClick={handleSubmit}
-            disabled={!amount || Number(amount) <= 0 || isSubmitting}
+            disabled={!amount || amountNumber <= 0 || isSubmitting}
             className="w-full h-12 rounded-xl text-base font-semibold bg-primary text-primary-foreground"
           >
             {isSubmitting

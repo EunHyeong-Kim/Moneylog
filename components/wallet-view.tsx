@@ -229,11 +229,17 @@ function PaymentMethodForm({ existing, onClose }: PaymentMethodFormProps) {
 
     if (existing) {
       await supabase.from('payment_methods').update(payload).eq('id', existing.id)
+      await mutate(
+        'payment_methods',
+        (current: PaymentMethod[] | undefined) =>
+          current?.map(pm => pm.id === existing.id ? { ...pm, ...payload } : pm),
+        { revalidate: true }
+      )
     } else {
       await supabase.from('payment_methods').insert({ ...payload, user_id: user.id })
+      await mutate('payment_methods')
     }
 
-    await mutate('payment_methods')
     setIsSubmitting(false)
     onClose()
   }

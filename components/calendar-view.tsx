@@ -122,14 +122,13 @@ export function CalendarView({ year, month, onMonthChange, onAddTransaction }: C
             const isSelected = dateStr === selectedDate
             const dayOfWeek = (firstDay + i) % 7
             const holidayName = holidayMap.get(dateStr)
-            const isHoliday = !!holidayName
-            const isRed = dayOfWeek === 0 || isHoliday
+            const isRed = dayOfWeek === 0 || !!holidayName
 
             return (
               <button
                 key={day}
                 onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                className="flex flex-col items-center min-h-[84px] p-1 rounded-lg transition-colors relative"
+                className="flex flex-col items-center min-h-[76px] p-1 rounded-lg transition-colors relative"
               >
                 <span className={`text-xs font-medium leading-5 ${
                   isToday
@@ -144,13 +143,8 @@ export function CalendarView({ year, month, onMonthChange, onAddTransaction }: C
                 }`}>
                   {day}
                 </span>
-                {holidayName && (
-                  <span className="block text-[7px] leading-[1.6] text-expense w-full text-center px-0.5 overflow-hidden whitespace-nowrap text-ellipsis opacity-80" style={{ marginTop: 1 }}>
-                    {holidayName}
-                  </span>
-                )}
                 {!isLoading && totals && (
-                  <div className="flex flex-col items-center gap-0.5 mt-0.5 w-full">
+                  <div className="flex flex-col items-center gap-0.5 mt-1 w-full">
                     {totals.income > 0 && (
                       <span className="text-[9px] leading-tight font-medium text-income w-full text-center px-0.5" style={{ wordBreak: 'break-all' }}>
                         +{totals.income >= 100000
@@ -182,6 +176,7 @@ export function CalendarView({ year, month, onMonthChange, onAddTransaction }: C
         <DayDetail
           date={selectedDate}
           transactions={selectedTransactions}
+          holidayName={holidayMap.get(selectedDate)}
           onClose={() => setSelectedDate(null)}
           onAddTransaction={() => onAddTransaction(selectedDate)}
         />

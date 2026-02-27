@@ -12,11 +12,12 @@ import type { Transaction } from '@/lib/types'
 interface DayDetailProps {
   date: string
   transactions: Transaction[]
+  holidayName?: string
   onClose: () => void
   onAddTransaction: () => void
 }
 
-export function DayDetail({ date, transactions, onClose, onAddTransaction }: DayDetailProps) {
+export function DayDetail({ date, transactions, holidayName, onClose, onAddTransaction }: DayDetailProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const d = new Date(date + 'T00:00:00')
@@ -41,11 +42,16 @@ export function DayDetail({ date, transactions, onClose, onAddTransaction }: Day
   return (
     <div className="border-t border-border bg-card">
       <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-baseline gap-2">
+        <div className="flex items-baseline gap-2 flex-wrap">
           <h3 className="text-base font-bold text-card-foreground">{dayLabel}</h3>
-          <span className={`text-sm ${d.getDay() === 0 ? 'text-expense' : d.getDay() === 6 ? 'text-primary' : 'text-muted-foreground'}`}>
+          <span className={`text-sm ${d.getDay() === 0 || holidayName ? 'text-expense' : d.getDay() === 6 ? 'text-primary' : 'text-muted-foreground'}`}>
             {weekday}요일
           </span>
+          {holidayName && (
+            <span className="text-xs font-medium text-expense bg-expense/10 px-2 py-0.5 rounded-full">
+              {holidayName}
+            </span>
+          )}
         </div>
         <Button variant="ghost" size="sm" onClick={onAddTransaction} className="h-8 gap-1 text-primary">
           <Plus className="h-4 w-4" />
