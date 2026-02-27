@@ -44,7 +44,7 @@ export function DayDetail({ date, transactions, holidayName, onClose, onAddTrans
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-baseline gap-2 flex-wrap">
           <h3 className="text-base font-bold text-card-foreground">{dayLabel}</h3>
-          <span className={`text-sm ${d.getDay() === 0 || holidayName ? 'text-expense' : d.getDay() === 6 ? 'text-primary' : 'text-muted-foreground'}`}>
+          <span className={`text-sm ${d.getDay() === 0 || holidayName ? 'text-expense' : d.getDay() === 6 ? 'text-blue-500' : 'text-muted-foreground'}`}>
             {weekday}요일
           </span>
           {holidayName && (

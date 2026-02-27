@@ -101,7 +101,7 @@ export function CalendarView({ year, month, onMonthChange, onAddTransaction }: C
             <div
               key={d}
               className={`py-1 text-center text-[11px] font-medium ${
-                d === 0 ? 'text-expense' : d === 6 ? 'text-primary' : 'text-muted-foreground'
+                d === 0 ? 'text-expense' : d === 6 ? 'text-blue-500' : 'text-muted-foreground'
               }`}
             >
               {getWeekdayName(d)}
@@ -134,11 +134,11 @@ export function CalendarView({ year, month, onMonthChange, onAddTransaction }: C
                   isToday
                     ? 'flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px]'
                     : isSelected
-                      ? `flex h-5 w-5 items-center justify-center rounded-full bg-primary/40 ${isRed ? 'text-expense' : dayOfWeek === 6 ? 'text-primary' : 'text-card-foreground'}`
+                      ? `flex h-5 w-5 items-center justify-center rounded-full bg-primary/40 ${isRed ? 'text-expense' : dayOfWeek === 6 ? 'text-blue-500' : 'text-card-foreground'}`
                       : isRed
                         ? 'text-expense'
                         : dayOfWeek === 6
-                          ? 'text-primary'
+                          ? 'text-blue-500'
                           : 'text-card-foreground'
                 }`}>
                   {day}
