@@ -199,10 +199,12 @@ function PaymentMethodForm({ existing, onClose }: PaymentMethodFormProps) {
       : ''
   )
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const handleSubmit = async () => {
     if (!name.trim()) return
     setIsSubmitting(true)
+    setErrorMsg(null)
 
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -213,6 +215,9 @@ function PaymentMethodForm({ existing, onClose }: PaymentMethodFormProps) {
       type,
       color: colorMap[type],
       icon: iconMap[type],
+      billing_day: null,
+      billing_start_day: null,
+      billing_end_day: null,
     }
 
     if (type === 'card') {
@@ -221,14 +226,15 @@ function PaymentMethodForm({ existing, onClose }: PaymentMethodFormProps) {
       payload.billing_end_day = billingEndDay
         ? billingEndDay === '말일' ? 0 : Number(billingEndDay)
         : null
-    } else {
-      payload.billing_day = null
-      payload.billing_start_day = null
-      payload.billing_end_day = null
     }
 
     if (existing) {
-      await supabase.from('payment_methods').update(payload).eq('id', existing.id)
+      const { error } = await supabase.from('payment_methods').update(payload).eq('id', existing.id)
+      if (error) {
+        setErrorMsg('저장 중 오류가 발생했습니다: ' + error.message)
+        setIsSubmitting(false)
+        return
+      }
       await mutate(
         'payment_methods',
         (current: PaymentMethod[] | undefined) =>
@@ -236,7 +242,12 @@ function PaymentMethodForm({ existing, onClose }: PaymentMethodFormProps) {
         { revalidate: true }
       )
     } else {
-      await supabase.from('payment_methods').insert({ ...payload, user_id: user.id })
+      const { error } = await supabase.from('payment_methods').insert({ ...payload, user_id: user.id })
+      if (error) {
+        setErrorMsg('저장 중 오류가 발생했습니다: ' + error.message)
+        setIsSubmitting(false)
+        return
+      }
       await mutate('payment_methods')
     }
 
@@ -362,6 +373,9 @@ function PaymentMethodForm({ existing, onClose }: PaymentMethodFormProps) {
               </div>
             )}
 
+            {errorMsg && (
+              <p className="text-xs text-expense bg-expense/10 rounded-xl px-3 py-2">{errorMsg}</p>
+            )}
             <Button
               onClick={handleSubmit}
               disabled={!name.trim() || isSubmitting}
