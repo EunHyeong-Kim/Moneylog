@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CategoryIcon } from '@/components/category-icon'
 import { formatCurrency } from '@/lib/helpers'
 import { createClient } from '@/lib/supabase/client'
 import { mutate } from 'swr'
 import type { Transaction } from '@/lib/types'
+import { TransactionForm } from './transaction-form'
 
 interface DayDetailProps {
   date: string
@@ -19,6 +20,7 @@ interface DayDetailProps {
 
 export function DayDetail({ date, transactions, holidayName, onClose, onAddTransaction }: DayDetailProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
 
   const d = new Date(date + 'T00:00:00')
   const dayLabel = `${d.getMonth() + 1}월 ${d.getDate()}일`
@@ -40,6 +42,7 @@ export function DayDetail({ date, transactions, holidayName, onClose, onAddTrans
   }
 
   return (
+    <>
     <div className="border-t border-border bg-card">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-baseline gap-2 flex-wrap">
@@ -102,6 +105,13 @@ export function DayDetail({ date, transactions, holidayName, onClose, onAddTrans
                     {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                   </span>
                   <button
+                    onClick={() => setEditingTransaction(t)}
+                    className="shrink-0 p-1.5 rounded-lg hover:bg-secondary transition-colors"
+                    aria-label="수정"
+                  >
+                    <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                  <button
                     onClick={() => handleDelete(t)}
                     disabled={deletingId === t.id}
                     className="shrink-0 p-1.5 rounded-lg hover:bg-destructive/10 transition-colors disabled:opacity-40"
@@ -116,5 +126,15 @@ export function DayDetail({ date, transactions, holidayName, onClose, onAddTrans
         </>
       )}
     </div>
+
+    {editingTransaction && (
+      <TransactionForm
+        existing={editingTransaction}
+        year={year}
+        month={month}
+        onClose={() => setEditingTransaction(null)}
+      />
+    )}
+    </>
   )
 }

@@ -10,9 +10,11 @@ import { createClient } from '@/lib/supabase/client'
 import { useCategories, usePaymentMethods } from '@/hooks/use-data'
 import { formatDate } from '@/lib/helpers'
 import { mutate } from 'swr'
+import type { Transaction } from '@/lib/types'
 
 interface TransactionFormProps {
   initialDate?: string
+  existing?: Transaction
   onClose: () => void
   year: number
   month: number
@@ -27,11 +29,11 @@ const INSTALLMENT_OPTIONS = [
   { value: 24, label: '24개월' },
 ]
 
-export function TransactionForm({ initialDate, onClose, year, month }: TransactionFormProps) {
+export function TransactionForm({ initialDate, existing, onClose, year, month }: TransactionFormProps) {
   const { data: categories } = useCategories()
   const { data: paymentMethods } = usePaymentMethods()
-  const [type, setType] = useState<'expense' | 'income'>('expense')
-  const [amount, setAmount] = useState('')
+  const [type, setType] = useState<'expense' | 'income'>(existing?.type || 'expense')
+  const [amount, setAmount] = useState(existing ? existing.amount.toLocaleString() : '')
 
   const amountNumber = Number(amount.replace(/,/g, ''))
 
@@ -39,12 +41,12 @@ export function TransactionForm({ initialDate, onClose, year, month }: Transacti
     const digits = e.target.value.replace(/[^0-9]/g, '')
     setAmount(digits ? Number(digits).toLocaleString() : '')
   }
-  const [categoryId, setCategoryId] = useState<string | null>(null)
-  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null)
-  const [installmentMonths, setInstallmentMonths] = useState(1)
-  const [description, setDescription] = useState('')
-  const [memo, setMemo] = useState('')
-  const [date, setDate] = useState(initialDate || formatDate(new Date()))
+  const [categoryId, setCategoryId] = useState<string | null>(existing?.category_id || null)
+  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(existing?.payment_method_id || null)
+  const [installmentMonths, setInstallmentMonths] = useState(existing?.installment_months || 1)
+  const [description, setDescription] = useState(existing?.description || '')
+  const [memo, setMemo] = useState(existing?.memo || '')
+  const [date, setDate] = useState(existing?.date || initialDate || formatDate(new Date()))
   const [isRecurring, setIsRecurring] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -92,7 +94,6 @@ export function TransactionForm({ initialDate, onClose, year, month }: Transacti
     if (!user) { setIsSubmitting(false); return }
 
     const payload: Record<string, unknown> = {
-      user_id: user.id,
       type,
       amount: amountNumber,
       category_id: categoryId,
@@ -100,32 +101,36 @@ export function TransactionForm({ initialDate, onClose, year, month }: Transacti
       description: description || null,
       memo: memo || null,
       date,
-      is_fixed: isRecurring,
+      is_fixed: existing ? existing.is_fixed : isRecurring,
+      installment_months: isCardPayment && installmentMonths > 1 ? installmentMonths : null,
     }
 
-    if (isCardPayment && installmentMonths > 1) {
-      payload.installment_months = installmentMonths
-    }
-
-    const { error } = await supabase.from('transactions').insert(payload)
-
-    if (!error) {
-      // If recurring, also register as a fixed expense
-      if (isRecurring && dueDay) {
-        await supabase.from('fixed_expenses').insert({
-          user_id: user.id,
-          category_id: categoryId,
-          payment_method_id: paymentMethodId,
-          description: description.trim() || '반복 지출',
-          amount: amountNumber,
-          due_day: dueDay,
-          is_active: true,
-        })
-        await mutate('fixed_expenses')
+    if (existing) {
+      // 수정 모드
+      const { error } = await supabase.from('transactions').update(payload).eq('id', existing.id)
+      if (!error) {
+        await mutate(`transactions-${year}-${month}`)
+        onClose()
       }
-
-      await mutate(`transactions-${year}-${month}`)
-      onClose()
+    } else {
+      // 신규 추가 모드
+      const { error } = await supabase.from('transactions').insert({ ...payload, user_id: user.id })
+      if (!error) {
+        if (isRecurring && dueDay) {
+          await supabase.from('fixed_expenses').insert({
+            user_id: user.id,
+            category_id: categoryId,
+            payment_method_id: paymentMethodId,
+            description: description.trim() || '반복 지출',
+            amount: amountNumber,
+            due_day: dueDay,
+            is_active: true,
+          })
+          await mutate('fixed_expenses')
+        }
+        await mutate(`transactions-${year}-${month}`)
+        onClose()
+      }
     }
     setIsSubmitting(false)
   }
@@ -139,7 +144,7 @@ export function TransactionForm({ initialDate, onClose, year, month }: Transacti
           <button onClick={onClose} aria-label="닫기">
             <X className="h-5 w-5 text-muted-foreground" />
           </button>
-          <h3 className="text-base font-bold text-card-foreground">내역 추가</h3>
+          <h3 className="text-base font-bold text-card-foreground">{existing ? '내역 수정' : '내역 추가'}</h3>
           <div className="w-5" />
         </div>
 
@@ -290,8 +295,8 @@ export function TransactionForm({ initialDate, onClose, year, month }: Transacti
               />
             </div>
 
-            {/* Recurring toggle — only for expense */}
-            {type === 'expense' && (
+            {/* Recurring toggle — only for new expense */}
+            {!existing && type === 'expense' && (
               <div className="flex flex-col gap-2">
                 <button
                   onClick={() => setIsRecurring(v => !v)}
@@ -350,9 +355,11 @@ export function TransactionForm({ initialDate, onClose, year, month }: Transacti
           >
             {isSubmitting
               ? '저장 중...'
-              : isRecurring
-                ? '저장 + 반복 등록'
-                : '저장하기'}
+              : existing
+                ? '수정하기'
+                : isRecurring
+                  ? '저장 + 반복 등록'
+                  : '저장하기'}
           </Button>
         </div>
       </div>
