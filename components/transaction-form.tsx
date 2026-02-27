@@ -49,6 +49,7 @@ export function TransactionForm({ initialDate, existing, onClose, year, month }:
   const [date, setDate] = useState(existing?.date || initialDate || formatDate(new Date()))
   const [isRecurring, setIsRecurring] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   // Day of month derived from selected date (e.g., 25 for 2025-02-25)
   const dueDay = useMemo(() => {
@@ -88,51 +89,63 @@ export function TransactionForm({ initialDate, existing, onClose, year, month }:
   const handleSubmit = async () => {
     if (!amount || amountNumber <= 0) return
     setIsSubmitting(true)
+    setErrorMsg(null)
 
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setIsSubmitting(false); return }
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setIsSubmitting(false); return }
 
-    const payload: Record<string, unknown> = {
-      type,
-      amount: amountNumber,
-      category_id: categoryId,
-      payment_method_id: paymentMethodId,
-      description: description || null,
-      memo: memo || null,
-      date,
-      is_fixed: existing ? existing.is_fixed : isRecurring,
-      installment_months: isCardPayment && installmentMonths > 1 ? installmentMonths : null,
-    }
-
-    if (existing) {
-      // 수정 모드
-      const { error } = await supabase.from('transactions').update(payload).eq('id', existing.id)
-      if (!error) {
-        await mutate(`transactions-${year}-${month}`)
-        onClose()
+      const payload: Record<string, unknown> = {
+        type,
+        amount: amountNumber,
+        category_id: categoryId,
+        payment_method_id: paymentMethodId,
+        description: description || null,
+        memo: memo || null,
+        date,
+        is_fixed: existing ? existing.is_fixed : isRecurring,
       }
-    } else {
-      // 신규 추가 모드
-      const { error } = await supabase.from('transactions').insert({ ...payload, user_id: user.id })
-      if (!error) {
-        if (isRecurring && dueDay) {
-          await supabase.from('fixed_expenses').insert({
-            user_id: user.id,
-            category_id: categoryId,
-            payment_method_id: paymentMethodId,
-            description: description.trim() || '반복 지출',
-            amount: amountNumber,
-            due_day: dueDay,
-            is_active: true,
-          })
-          await mutate('fixed_expenses')
+
+      if (existing) {
+        // 수정 모드
+        const { error } = await supabase.from('transactions').update(payload).eq('id', existing.id)
+        if (error) {
+          setErrorMsg('저장 실패: ' + error.message)
+        } else {
+          await mutate(`transactions-${year}-${month}`)
+          onClose()
         }
-        await mutate(`transactions-${year}-${month}`)
-        onClose()
+      } else {
+        // 신규 추가 모드 — installment_months는 추가 시에만 포함
+        if (isCardPayment && installmentMonths > 1) {
+          payload.installment_months = installmentMonths
+        }
+        const { error } = await supabase.from('transactions').insert({ ...payload, user_id: user.id })
+        if (error) {
+          setErrorMsg('저장 실패: ' + error.message)
+        } else {
+          if (isRecurring && dueDay) {
+            await supabase.from('fixed_expenses').insert({
+              user_id: user.id,
+              category_id: categoryId,
+              payment_method_id: paymentMethodId,
+              description: description.trim() || '반복 지출',
+              amount: amountNumber,
+              due_day: dueDay,
+              is_active: true,
+            })
+            await mutate('fixed_expenses')
+          }
+          await mutate(`transactions-${year}-${month}`)
+          onClose()
+        }
       }
+    } catch (e) {
+      setErrorMsg('오류가 발생했습니다: ' + String(e))
+    } finally {
+      setIsSubmitting(false)
     }
-    setIsSubmitting(false)
   }
 
   return (
@@ -348,6 +361,9 @@ export function TransactionForm({ initialDate, existing, onClose, year, month }:
 
         {/* Submit Button */}
         <div className="border-t border-border p-4 safe-bottom">
+          {errorMsg && (
+            <p className="mb-2 text-xs text-expense bg-expense/10 rounded-xl px-3 py-2">{errorMsg}</p>
+          )}
           <Button
             onClick={handleSubmit}
             disabled={!amount || amountNumber <= 0 || isSubmitting}
